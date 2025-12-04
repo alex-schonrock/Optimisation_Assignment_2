@@ -60,24 +60,48 @@ class RunnerModel2:
         }, index =pd.Index(range(len(results.v_bought)), name = "day"))
 
         budget = results.v_budget
-        unmet_demand_list = results.v_unmet_demand
         unmet_demand = results.obj
-        return flows_results_df, unmet_demand, spending_results_df, budget, dual_results_df, unmet_demand_list
+        return flows_results_df, unmet_demand, spending_results_df, budget, dual_results_df
 
 path = r"C:\Users\alex\OneDrive\Desktop\DTU\Optimistation\Optimisation_Assignment_2\Data"
-flow_results, unmet_demand, spending_results, budget, dual_results, unmet_demand_list = RunnerModel2(path).run_model()
-print("Spending Results:\n", spending_results.head())
-print("Unmet demand Results:\n", unmet_demand_list)
-with open('unmet_demand_model_2.csv', 'w', newline='') as f:
-    writer = csv.writer(f)
-    writer.writerow(unmet_demand_list)
-#print("Primal Results:\n", flow_results)
-#print("Total Expenditure:", expenditure)
-plot_primal_results(flow_results, save_path=Path(path)/"figures"/"Model_2_primal_results", show=True, show_price_line=True, line_label="Stored (MWh)",
-title=f"Primal Results for Model 2, Total unmet demand = {unmet_demand:.2f} MWh")
-plot_primal_results(spending_results, save_path=Path(path)/"figures"/"Model_2_spending_results", show=True, show_price_line=True, line_label="Price (dkk/MWh)",
-title=f"Spending Results for Model 2, Total Expenditure = {unmet_demand:.2f} DKK", y_axis_label="Spending (DKK)")
-plot_all_duals(dual_results, save_path=Path(path)/"figures"/"Model_2_dual_results", show=True)
+flow_results, unmet_demand, spending_results, budget, dual_results = RunnerModel2(path).run_model()
+
+print_model_2_metrics(flow_results, spending_results, budget, unmet_demand)
+
+# Create separate plots
+# plot_model_2_energy_balance(
+#     flow_results=flow_results, unmet_demand=unmet_demand,
+#     save_path=Path(path) / "figures" / "Model_2_energy_balance"
+# )
+
+# plot_model_2_economics(
+#     spending_results=spending_results, unmet_demand=unmet_demand,
+#     save_path=Path(path) / "figures" / "Model_2_economics"
+# )
+plot_model_2_economics_alternative(
+    spending_results=spending_results, unmet_demand=unmet_demand,
+    save_path=Path(path) / "figures" / "Model_2_economics_v2"
+)
+
+plot_model_2_storage_vs_budget_over_time(
+    flow_results=flow_results,
+    spending_results=spending_results,
+    save_path=Path(path) / "figures" / "Model_2_storage_vs_budget_time"
+)
+
+
+
+
+
+
+
+
+# print("Spending Results:\n", spending_results.head())
+# plot_primal_results(flow_results, save_path=Path(path)/"figures"/"Model_2_primal_results", show=True, show_price_line=True, line_label="Stored (MWh)",
+# title=f"Primal Results for Model 2, Total unmet demand = {unmet_demand:.2f} MWh")
+# plot_primal_results(spending_results, save_path=Path(path)/"figures"/"Model_2_spending_results", show=True, show_price_line=True, line_label="Price (dkk/MWh)",
+# title=f"Spending Results for Model 2, Total Expenditure = {unmet_demand:.2f} DKK", y_axis_label="Spending (DKK)")
+# plot_all_duals(dual_results, save_path=Path(path)/"figures"/"Model_2_dual_results", show=True)
 
 # print(budget)
 # plot_combined_results(flow_results, 

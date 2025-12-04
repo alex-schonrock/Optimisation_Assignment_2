@@ -88,7 +88,7 @@ class DataProcessor():
         price_btu = price_df_full[col].astype(float).to_numpy()
         price_MWh = price_btu * 6.44 *3.412  # convert $/btu to dkk/MWh
         # print("prices are", price_MWh)
-        print("average price is", np.mean(price_MWh))
+        # print("average price is", np.mean(price_MWh))
 
         ################# NEED TO CONVERT PRICE TO DKK/MWh  ###############################
 
@@ -101,7 +101,7 @@ class DataProcessor():
         demand_MW_max = demand_MW.max()
         plant_max_fuel_capacity_MWh = 386.06
         demand_MW_plant = demand_MW * (plant_max_fuel_capacity_MWh / demand_MW_max)*0.8  # scale to 80% of max plant capacity
-        print("average demand is", np.mean(demand_MW_plant))
+        # print("average demand is", np.mean(demand_MW_plant))
         # print(demand_MW_plant)
 
 
@@ -147,27 +147,65 @@ class DataProcessor():
             # demand_scenarios = [demand_factor_scenarios[i] * demand_MW_plant for i in range(len(demand_factor_scenarios))]
             # scenario_probabilities = [1/2, 1/2]  # Equal probabilities for simplicity
 
-            def generate_scenarios(demand_MW_plant, demand_factor_scenarios, K):
-                # Multiply each factor by the demand for each time period
-                demand_scenarios = np.array([demand_MW_plant * factor for factor in demand_factor_scenarios])
+            # def generate_scenarios(demand_MW_plant, demand_factor_scenarios, K):
+            #     # Multiply each factor by the demand for each time period
+            #     demand_scenarios = np.array([demand_MW_plant * factor for factor in demand_factor_scenarios])
 
-                # Sample from the demand scenarios for K time periods (assuming 30 time periods in total)
-                sampled_scenarios = np.random.choice(demand_scenarios.flatten(), size=(K, 30))  # K samples, 30 time periods
+            #     # Sample from the demand scenarios for K time periods (assuming 30 time periods in total)
+            #     np.random.seed(42)
+            #     sampled_scenarios = np.random.choice(demand_scenarios.flatten(), size=(K, 30))  # K samples, 30 time periods
+            #     return sampled_scenarios
+
+            # # Example parameters
+            # # demand_MW_plant = np.array([100] * 30)  # Example: Total demand for the plant in MW for 30 time periods
+            # demand_factor_scenarios = [0.9, 1.1]  # Scenario factors
+            # K = 1000  # Number of sampled scenarios
+
+            def generate_scenarios(demand_MW_plant, demand_factor_scenarios, K):
+                """
+                Generate K demand scenarios where each day is independently high or low.
+                
+                Parameters:
+                - demand_MW_plant: array of base demand for each day (shape: 30,)
+                - demand_factor_scenarios: [low_factor, high_factor], e.g., [0.9, 1.1]
+                - K: number of scenarios to sample
+                
+                Returns:
+                - sampled_scenarios: array of shape (K, 30) with demand scenarios
+                """
+                np.random.seed(42)
+                
+                n_days = len(demand_MW_plant)
+                sampled_scenarios = np.zeros((K, n_days))
+                
+                # For each scenario, randomly choose high or low for each day
+                for k in range(K):
+                    # For each day, randomly pick 0 (low=0.9) or 1 (high=1.1) with equal probability
+                    random_choices = np.random.choice([0, 1], size=n_days, p=[0.5, 0.5])
+                    
+                    # Apply the factors
+                    for t in range(n_days):
+                        factor = demand_factor_scenarios[random_choices[t]]
+                        sampled_scenarios[k, t] = demand_MW_plant[t] * factor
+                
                 return sampled_scenarios
 
-            # Example parameters
-            # demand_MW_plant = np.array([100] * 30)  # Example: Total demand for the plant in MW for 30 time periods
-            demand_factor_scenarios = [0.95, 1.05]  # Scenario factors
-            K = 2  # Number of sampled scenarios
+
+            demand_factor_scenarios = [0.9, 1.1]  # Low and high scenarios
+            K = 1000  # Number of scenarios
+
+            sampled_scenarios = generate_scenarios(demand_MW_plant, demand_factor_scenarios, K)
+            scenario_probabilities = np.ones(K) / K  # Equal probabilities
 
             sampled_scenarios = generate_scenarios(demand_MW_plant, demand_factor_scenarios, K)
             scenario_probabilities = 1 / K * np.ones(K)  # Equal probabilities for simplicity
-            print("Sampled Scenarios:\n", sampled_scenarios)
+            # print("Sampled Scenarios:\n", sampled_scenarios)
             with open('unmet_demand_model_2.csv', 'r') as f:
                 reader = csv.reader(f)
                 loaded_list = next(reader)
             expected_unmet_demand = [float(x) for x in loaded_list]
-            print("Expected unmet demand:\n", expected_unmet_demand)
+            # print("Expected unmet demand:\n", expected_unmet_demand)
+            # print("Scenario Probabilities:\n", scenario_probabilities)
 
             return InputData(
             price_MWh,

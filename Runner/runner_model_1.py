@@ -6,6 +6,7 @@ from Runner.opt_model_1 import OptModel1
 from Runner.opt_model_1 import DataProcessor
 from Utils.utils import *
 from Data_ops.data_loader_processor import *
+from Runner.runner_model_1_v2 import *
 
 class RunnerModel1:
     """Class to run optimization model 1."""
@@ -53,15 +54,29 @@ class RunnerModel1:
             "Allowance dual": results.duals.allowance
         }, index =pd.Index(range(len(results.v_bought)), name = "day"))
 
-        expenditure = results.obj
-        return primal_results_df, expenditure, spending_results_df, dual_results_df
+        unmet_demand = results.obj
+        return primal_results_df, unmet_demand, spending_results_df, dual_results_df
 
 path = r"C:\Users\alex\OneDrive\Desktop\DTU\Optimistation\Optimisation_Assignment_2\Data"
-primal_results, expenditure, spending_results, dual_results = RunnerModel1(path).run_model()
-print("Primal Results:\n", primal_results)
-print("Total Expenditure:", expenditure)
-plot_primal_results(primal_results, save_path=Path(path)/"figures"/"Model_1_primal_results", show=True, show_price_line=True, line_label="Price (DKK/MWh)",
-title=f"Primal Results for Model 1, Total Expenditure = {expenditure:.2f} DKK")
-plot_primal_results(spending_results, save_path=Path(path)/"figures"/"Model_1_spending_results", show=True, show_price_line=True, line_label="Price (dkk/MWh)",
-title=f"Spending Results for Model 2, Total Expenditure = {expenditure:.2f} DKK")
-plot_all_duals(dual_results, save_path=Path(path)/"figures"/"Model_1_dual_results", show=True)
+primal_results, unmet_demand, spending_results, dual_results = RunnerModel1(path).run_model()
+
+print_model_1_metrics(primal_results, spending_results, unmet_demand)
+
+plot_model_1_energy_balance(
+    primal_results=primal_results, unmet_demand=unmet_demand,
+    save_path=Path(path) / "figures" / "Model_1_energy_balance"
+)
+
+plot_model_1_economics(
+    primal_results=primal_results,
+    spending_results=spending_results, unmet_demand=unmet_demand,
+    save_path=Path(path) / "figures" / "Model_1_economics"
+)
+
+
+
+# plot_primal_results(primal_results, save_path=Path(path)/"figures"/"Model_1_primal_results", show=True, show_price_line=True, line_label="Price (DKK/MWh)",
+# title=f"Primal Results for Model 1, Total Unmet Demand = {unmet_demand:.2f} MWh")
+# plot_primal_results(spending_results, save_path=Path(path)/"figures"/"Model_1_spending_results", show=True, show_price_line=True, line_label="Price (dkk/MWh)",
+# title=f"Spending Results for Model 2, Total Unmet Demand = {unmet_demand:.2f} MWh")
+# plot_all_duals(dual_results, save_path=Path(path)/"figures"/"Model_1_dual_results", show=True)
