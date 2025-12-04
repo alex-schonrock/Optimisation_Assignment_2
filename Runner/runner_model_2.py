@@ -3,7 +3,10 @@ from pathlib import Path
 import numpy as np
 from Runner.opt_model_2 import OptModel2
 from Runner.opt_model_1 import DataProcessor
-from Utils.utils import plot_primal_results
+from Utils.utils import *
+from Data_ops.data_loader_processor import *
+import csv
+
 
 class RunnerModel2:
     """Class to run optimization model 2."""
@@ -22,19 +25,65 @@ class RunnerModel2:
     
         # Retrieve results
         results = model.solve()
-        primal_results_df = pd.DataFrame({
-            "Bought (Btu)": results.v_bought,
-            "Unmet_Demand (Btu)": results.v_unmet_demand,
-            "Price (DKK/Btu)": results.prices,
-            "Demand (Btu)": results.demand,
-            "Stored (Btu)": results.v_stored,
-            "Budget (DKK)": results.v_budget
+        flows_results_df = pd.DataFrame({
+            "Bought (MWh)": results.v_bought,
+            "Unmet_Demand (MWh)": results.v_unmet_demand,
+            "Demand (MWh)": results.demand,
+            "Stored (MWh)": results.v_stored,
+            # "Price (dkk/MWh)": results.v_stored,
         }, index =pd.Index(range(len(results.v_bought)), name = "day"))
 
-        expenditure = results.obj
-        return primal_results_df, expenditure
+        # cost_of_unmet_demand = results.v_unmet_demand * input_data.unmet_demand_cost
+        bought_dkk = results.v_bought * input_data.price
+        cost_of_storage = results.v_stored * input_data.storage_cost
+
+        allowance = results.allowance
+        carry_over_budget = results.v_budget - allowance
+
+        spending_results_df = pd.DataFrame({
+            "Bought fuel": np.around(bought_dkk,1),
+            # "Unmet demand (1000 DKK)": np.around(cost_of_unmet_demand,1)/1000,
+            "Storage cost": cost_of_storage,
+            "Carry over budget": carry_over_budget,
+            "Allowance": allowance,
+            "Price (dkk/MWh)": results.prices
+        }, index =pd.Index(range(len(results.v_bought)), name = "day"))
+
+        dual_results_df = pd.DataFrame({
+            "Power Balance dual": results.duals.balance,
+            "Max unmet demand dual": results.duals.unmet_demand_max,
+            "Plant min dual": results.duals.plant_min,
+            "Ramp up dual": results.duals.ramp_up,
+            "Ramp down dual": results.duals.ramp_down,
+            "Depreciation dual": results.duals.depreciation,
+            "Budget": results.duals.budget
+        }, index =pd.Index(range(len(results.v_bought)), name = "day"))
+
+        budget = results.v_budget
+        unmet_demand_list = results.v_unmet_demand
+        unmet_demand = results.obj
+        return flows_results_df, unmet_demand, spending_results_df, budget, dual_results_df, unmet_demand_list
 
 path = r"C:\Users\alex\OneDrive\Desktop\DTU\Optimistation\Optimisation_Assignment_2\Data"
-primal_results, expenditure = RunnerModel2(path).run_model()
-print("Primal Results:\n", primal_results)
-print("Total Expenditure:", expenditure)
+flow_results, unmet_demand, spending_results, budget, dual_results, unmet_demand_list = RunnerModel2(path).run_model()
+print("Spending Results:\n", spending_results.head())
+print("Unmet demand Results:\n", unmet_demand_list)
+with open('unmet_demand_model_2.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(unmet_demand_list)
+#print("Primal Results:\n", flow_results)
+#print("Total Expenditure:", expenditure)
+plot_primal_results(flow_results, save_path=Path(path)/"figures"/"Model_2_primal_results", show=True, show_price_line=True, line_label="Stored (MWh)",
+title=f"Primal Results for Model 2, Total unmet demand = {unmet_demand:.2f} MWh")
+plot_primal_results(spending_results, save_path=Path(path)/"figures"/"Model_2_spending_results", show=True, show_price_line=True, line_label="Price (dkk/MWh)",
+title=f"Spending Results for Model 2, Total Expenditure = {unmet_demand:.2f} DKK", y_axis_label="Spending (DKK)")
+plot_all_duals(dual_results, save_path=Path(path)/"figures"/"Model_2_dual_results", show=True)
+
+# print(budget)
+# plot_combined_results(flow_results, 
+#                       spending_results, 
+#                       expenditure, 
+#                       save_path=Path(path) / "figures" / "Model_2_combined_results", 
+#                       show=True, 
+#                       line_label="Price (dkk/MWh)",
+#                       title=f"Combined Results for Model 2, Total Expenditure = {expenditure:.2f} DKK")

@@ -1,10 +1,11 @@
-from Runner.opt_model_1 import InputData
-from Runner.opt_model_1 import DataProcessor
+# from Runner.opt_model_1 import InputData
+# from Runner.opt_model_1 import DataProcessor
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import gurobipy as gp
 from gurobipy import GRB
+from Data_ops.data_loader_processor import *
 
 class Expando(object):
     pass
@@ -20,7 +21,7 @@ class OptModel2:
         self.cons.balance = {}
         self.cons.allowance = {}
         self.cons.unmet_demand_max = {}
-        self.cons.bought_min = {}
+        self.cons.plant_min = {}
         self.cons.ramp_up = {}
         self.cons.ramp_down = {}
         self.cons.depreciation = {}
@@ -32,17 +33,18 @@ class OptModel2:
 
     def _set_objective(self):
 
-        obj_fn = gp.quicksum(
-                self.data.price[t] * self.vars.bought[t] + 
-                self.data.unmet_demand_cost * self.vars.unmet_demand[t] +
-                self.data.storage_cost * self.vars.stored[t]
-                for t in self.T)
+        # obj_fn = gp.quicksum(
+        #         self.data.price[t] * self.vars.bought[t] + 
+        #         self.data.unmet_demand_cost * self.vars.unmet_demand[t] +
+        #         self.data.storage_cost * self.vars.stored[t]
+        #         for t in self.T)
+        obj_fn = gp.quicksum(self.vars.unmet_demand[t] for t in self.T)
         self.model.setObjective(obj_fn, GRB.MINIMIZE)
 
     def _build(self):
         v_bought = self.model.addVars(self.T, name="bought", lb=0)
         v_unmet_demand = self.model.addVars(self.T, name="unmet_demand", lb=0)
-        v_stored = self.model.addVars(self.T, name="stored", lb=0)
+        v_stored = self.model.addVars(self.T, name="stored", lb=0, ub=self.data.max_storage_capacity)
         v_budget = self.model.addVars(self.T, name="budget", lb=0)
 
         # store variable handles in self.vars
@@ -52,26 +54,28 @@ class OptModel2:
         self.vars.budget = v_budget
 
         for i in self.T:
-            #### fix this one for s0 
-
-            
-
+            #### constraints for every time period including first one
             self.cons.unmet_demand_max[i] = self.model.addConstr(self.vars.unmet_demand[i] <= self.data.demand[i], name=f"unmet_demand_max_{i}")
-            self.cons.bought_min[i] = self.model.addConstr(self.vars.bought[i] >= self.data.demand_min, name=f"bought_min_{i}")
-            self.cons.budget[i] = self.model.addConstr(self.vars.bought[i]*self.data.price[i] <= self.vars.budget[i], name=f"budget_{i}")
+            self.cons.plant_min[i] = self.model.addConstr(self.data.demand[i]-self.vars.unmet_demand[i] >= self.data.demand_min, name=f"bought_min_{i}")
+            self.cons.budget[i] = self.model.addConstr(self.vars.bought[i]*self.data.price[i] + self.vars.stored[i]*self.data.storage_cost <= self.vars.budget[i], name=f"budget_{i}")
+            # self.cons.budget[i] = self.model.addConstr(self.vars.bought[i]*self.data.price[i] <= self.vars.budget[i], name=f"budget_{i}")
 
 
         # constraints that dont apply in the first day due to intertemporal nature
         for i in list(range(1, len(self.data.demand))):
-            self.cons.ramp_up[i] = self.model.addConstr(self.vars.bought[i] - self.vars.bought[i-1] <= self.data.ramp_rate)
-            self.cons.ramp_down[i] = self.model.addConstr(self.vars.bought[i-1] - self.vars.bought[i] <= self.data.ramp_rate)
+            self.cons.ramp_up[i] = self.model.addConstr(self.data.demand[i] - self.vars.unmet_demand[i] - (self.data.demand[i-1] - self.vars.unmet_demand[i-1]) <= self.data.ramp_rate)
+            self.cons.ramp_down[i] = self.model.addConstr(self.data.demand[i-1] - self.vars.unmet_demand[i-1] - (self.data.demand[i]- self.vars.unmet_demand[i]) <= self.data.ramp_rate)
             self.cons.depreciation[i] = self.model.addConstr(self.vars.budget[i] == self.data.exp_allowance + 
-                                                             self.data.depreciation*(self.vars.budget[i-1] - self.vars.bought[i-1]*self.data.price[i-1]))
+                                                              self.data.depreciation*(self.vars.budget[i-1] - self.vars.bought[i-1]*self.data.price[i-1]-self.vars.stored[i-1]*self.data.storage_cost))
+            # self.cons.depreciation[i] = self.model.addConstr(self.vars.budget[i] == self.data.exp_allowance + 
+            #                                                  self.data.depreciation*(self.vars.budget[i-1] - self.vars.bought[i-1]*self.data.price[i-1]))
             self.cons.balance[i] = self.model.addConstr(self.vars.bought[i] + self.vars.stored[i-1] ==
                                                         self.data.demand[i] - self.vars.unmet_demand[i] + self.vars.stored[i], name=f"balance_{i}")
         self.cons.balance[0] = self.model.addConstr(self.vars.bought[0] ==
                                                     self.data.demand[0] - self.vars.unmet_demand[0] + self.vars.stored[0], name=f"balance_0")
-        self.cons.inital_budget = self.model.addConstr(self.vars.budget[0] == self.data.exp_allowance)
+        self.cons.depreciation[0] = self.model.addConstr(self.vars.budget[0] == self.data.exp_allowance, name="initial_budget")
+        self.cons.ramp_up[0] = self.model.addConstr(self.data.demand[0] - self.vars.unmet_demand[0] <= self.data.ramp_rate, name="ramp_up_0")
+        self.cons.ramp_down[0] = self.model.addConstr(self.data.demand[0] - self.vars.unmet_demand[0] <= self.data.ramp_rate, name="ramp_down_0")
 
         self._set_objective()
     
@@ -89,6 +93,7 @@ class OptModel2:
         self.results.demand = np.asarray(self.data.demand, dtype=float).reshape(-1)
         self.results.v_stored = np.array([v.stored[t].X for t in self.T])
         self.results.v_budget = np.array([v.budget[t].X for t in self.T])
+        self.results.allowance = np.asarray(self.data.exp_allowance, dtype=float).reshape(-1)
 
         self.results.obj = self.model.ObjVal
 
@@ -96,8 +101,12 @@ class OptModel2:
 
         duals.balance = np.array([self.cons.balance[t].Pi for t in self.T], dtype=float)
         duals.unmet_demand_max = np.array([self.cons.unmet_demand_max[t].Pi for t in self.T], dtype=float)
-        duals.bought_min = np.array([self.cons.bought_min[t].Pi for t in self.T], dtype=float)
-        #duals.allowance = float(self.cons.allowance.Pi)
+        duals.plant_min = np.array([self.cons.plant_min[t].Pi for t in self.T], dtype=float)
+        duals.ramp_up = np.array([self.cons.ramp_up[t].Pi for t in self.T], dtype=float)
+        duals.ramp_down = np.array([self.cons.ramp_down[t].Pi for t in self.T], dtype=float)
+        duals.depreciation = np.array([self.cons.depreciation[t].Pi for t in self.T], dtype=float)
+        duals.budget = np.array([self.cons.budget[t].Pi for t in self.T], dtype=float)
+
         
         self.results.duals = duals
         return self.results
