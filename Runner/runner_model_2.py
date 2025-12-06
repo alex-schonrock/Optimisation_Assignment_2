@@ -53,8 +53,8 @@ class RunnerModel2:
             "Power Balance dual": results.duals.balance,
             "Max unmet demand dual": results.duals.unmet_demand_max,
             "Plant min dual": results.duals.plant_min,
-            "Ramp up dual": results.duals.ramp_up,
-            "Ramp down dual": results.duals.ramp_down,
+            # "Ramp up dual": results.duals.ramp_up,
+            # "Ramp down dual": results.duals.ramp_down,
             "Depreciation dual": results.duals.depreciation,
             "Budget": results.duals.budget
         }, index =pd.Index(range(len(results.v_bought)), name = "day"))
@@ -67,47 +67,44 @@ path = r"C:\Users\alex\OneDrive\Desktop\DTU\Optimistation\Optimisation_Assignmen
 flow_results, unmet_demand, spending_results, budget, dual_results = RunnerModel2(path).run_model()
 
 print_model_2_metrics(flow_results, spending_results, budget, unmet_demand)
+print("flow results", flow_results)
 
-# Create separate plots
-# plot_model_2_energy_balance(
-#     flow_results=flow_results, unmet_demand=unmet_demand,
-#     save_path=Path(path) / "figures" / "Model_2_energy_balance"
+# plot_model_2_storage_strategy(
+#     flow_results=flow_results,
+#     spending_results=spending_results,
+#     save_path=Path(path) / "figures" / "Model_2_storage_strategy"
+
 # )
-
-# plot_model_2_economics(
-#     spending_results=spending_results, unmet_demand=unmet_demand,
-#     save_path=Path(path) / "figures" / "Model_2_economics"
-# )
-plot_model_2_economics_alternative(
-    spending_results=spending_results, unmet_demand=unmet_demand,
-    save_path=Path(path) / "figures" / "Model_2_economics_v2"
-)
-
-plot_model_2_storage_vs_budget_over_time(
+plot_model2_procurement_plan(
     flow_results=flow_results,
     spending_results=spending_results,
-    save_path=Path(path) / "figures" / "Model_2_storage_vs_budget_time"
+    unmet_demand=unmet_demand,
+    save_path=Path(path) / "figures" / "model2_procurement_plan"
 )
 
+# create_decision_matrix(
+#     flow_results=flow_results,
+#     spending_results=spending_results,
+#     save_path=Path(path) / "figures" / "Model_2_decision_matrix4x4_more_dates"
+# )
+# Create separate plots
+plot_model_2_energy_balance(
+    flow_results=flow_results,
+    spending_results=spending_results,  # Add this
+    unmet_demand=unmet_demand,
+    save_path=Path(path) / "figures" / "model2_energy_balance"
+)
+
+plot_model_2_economics(
+    spending_results=spending_results, unmet_demand=unmet_demand,
+    save_path=Path(path) / "figures" / "Model_2_economics"
+)
+
+# plot_model_2_storage_vs_budget_over_time(
+#     flow_results=flow_results,
+#     spending_results=spending_results,
+#     save_path=Path(path) / "figures" / "Model_2_storage_vs_budget_time"
+# )
 
 
 
-
-
-
-
-# print("Spending Results:\n", spending_results.head())
-# plot_primal_results(flow_results, save_path=Path(path)/"figures"/"Model_2_primal_results", show=True, show_price_line=True, line_label="Stored (MWh)",
-# title=f"Primal Results for Model 2, Total unmet demand = {unmet_demand:.2f} MWh")
-# plot_primal_results(spending_results, save_path=Path(path)/"figures"/"Model_2_spending_results", show=True, show_price_line=True, line_label="Price (dkk/MWh)",
-# title=f"Spending Results for Model 2, Total Expenditure = {unmet_demand:.2f} DKK", y_axis_label="Spending (DKK)")
-# plot_all_duals(dual_results, save_path=Path(path)/"figures"/"Model_2_dual_results", show=True)
-
-# print(budget)
-# plot_combined_results(flow_results, 
-#                       spending_results, 
-#                       expenditure, 
-#                       save_path=Path(path) / "figures" / "Model_2_combined_results", 
-#                       show=True, 
-#                       line_label="Price (dkk/MWh)",
-#                       title=f"Combined Results for Model 2, Total Expenditure = {expenditure:.2f} DKK")

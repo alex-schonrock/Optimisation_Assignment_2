@@ -39,7 +39,7 @@ class OptModelCVaR:
         self.T = list(range(len(self.data.demand_scenarios[0])))  # Time periods
         self.S = list(range(len(self.data.demand_scenarios)))     # Scenarios
         self.probs = self.data.probabilities  # Probabilities of each scenario
-        self.expected_unmet_demand = self.data.expected_unmet_demand
+        self.price_scenarios = self.data.price_scenarios
 
     def _set_objective_with_cvar(self):
         # CVaR penalty based on `eta`
@@ -77,7 +77,7 @@ class OptModelCVaR:
                 # Constraints for plant minimum
                 self.cons.plant_min[t, s] = self.model.addConstr(self.data.demand_scenarios[s, t] - self.vars.unmet_demand[t, s] >= self.data.demand_min, name=f"bought_min_{t}_{s}")
                 # Constraints for the budget (bought energy + storage cost)
-                self.cons.budget[t, s] = self.model.addConstr(self.vars.bought[t, s] * self.data.price[t] + self.vars.stored[t, s] * self.data.storage_cost <= self.vars.budget[t, s], name=f"budget_{t}_{s}")
+                self.cons.budget[t, s] = self.model.addConstr(self.vars.bought[t, s] * self.data.price_scenarios[s, t] + self.vars.stored[t, s] * self.data.storage_cost <= self.vars.budget[t, s], name=f"budget_{t}_{s}")
 
         # Constraints that don't apply in the first day due to intertemporal nature
         for t in list(range(1, len(self.data.demand_scenarios[0]))):  # Loop over time periods
@@ -111,7 +111,7 @@ class OptModelCVaR:
         v = self.vars
         self.results.v_bought = np.array([[v.bought[t, s].X for s in self.S] for t in self.T])
         self.results.v_unmet_demand = np.array([[v.unmet_demand[t, s].X for s in self.S] for t in self.T])
-        self.results.prices = np.asarray(self.data.price, dtype=float).reshape(-1)
+        self.results.price_scenarios = np.asarray(self.data.price_scenarios, dtype=float)
         self.results.demand_scenarios = np.asarray(self.data.demand_scenarios, dtype=float)
         self.results.v_stored = np.array([[v.stored[t, s].X for s in self.S] for t in self.T])
         self.results.v_budget = np.array([[v.budget[t, s].X for s in self.S] for t in self.T])

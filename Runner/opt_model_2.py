@@ -33,11 +33,6 @@ class OptModel2:
 
     def _set_objective(self):
 
-        # obj_fn = gp.quicksum(
-        #         self.data.price[t] * self.vars.bought[t] + 
-        #         self.data.unmet_demand_cost * self.vars.unmet_demand[t] +
-        #         self.data.storage_cost * self.vars.stored[t]
-        #         for t in self.T)
         obj_fn = gp.quicksum(self.vars.unmet_demand[t] for t in self.T)
         self.model.setObjective(obj_fn, GRB.MINIMIZE)
 
@@ -74,8 +69,6 @@ class OptModel2:
         self.cons.balance[0] = self.model.addConstr(self.vars.bought[0] ==
                                                     self.data.demand[0] - self.vars.unmet_demand[0] + self.vars.stored[0], name=f"balance_0")
         self.cons.depreciation[0] = self.model.addConstr(self.vars.budget[0] == self.data.exp_allowance, name="initial_budget")
-        self.cons.ramp_up[0] = self.model.addConstr(self.data.demand[0] - self.vars.unmet_demand[0] <= self.data.ramp_rate, name="ramp_up_0")
-        self.cons.ramp_down[0] = self.model.addConstr(self.data.demand[0] - self.vars.unmet_demand[0] <= self.data.ramp_rate, name="ramp_down_0")
 
         self._set_objective()
     
@@ -102,8 +95,6 @@ class OptModel2:
         duals.balance = np.array([self.cons.balance[t].Pi for t in self.T], dtype=float)
         duals.unmet_demand_max = np.array([self.cons.unmet_demand_max[t].Pi for t in self.T], dtype=float)
         duals.plant_min = np.array([self.cons.plant_min[t].Pi for t in self.T], dtype=float)
-        duals.ramp_up = np.array([self.cons.ramp_up[t].Pi for t in self.T], dtype=float)
-        duals.ramp_down = np.array([self.cons.ramp_down[t].Pi for t in self.T], dtype=float)
         duals.depreciation = np.array([self.cons.depreciation[t].Pi for t in self.T], dtype=float)
         duals.budget = np.array([self.cons.budget[t].Pi for t in self.T], dtype=float)
 

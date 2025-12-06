@@ -6,7 +6,6 @@ from Runner.opt_model_1 import OptModel1
 from Runner.opt_model_1 import DataProcessor
 from Utils.utils import *
 from Data_ops.data_loader_processor import *
-from Runner.runner_model_1_v2 import *
 
 class RunnerModel1:
     """Class to run optimization model 1."""
