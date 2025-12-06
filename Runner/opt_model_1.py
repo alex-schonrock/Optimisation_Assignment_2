@@ -81,6 +81,3 @@ class OptModel1:
 
 
 
-path = r"C:\Users\alex\OneDrive\Desktop\DTU\Optimistation\Optimisation_Assignment_2\Data"
-data_processor = DataProcessor(path, "Model_1")
-data_processor.get_coefficients()

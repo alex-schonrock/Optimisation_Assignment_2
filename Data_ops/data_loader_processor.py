@@ -4,7 +4,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from logging import Logger
 import pandas as pd
-from Utils.utils import load_datafile
+from Utils.utils_and_plotting import load_datafile
 import numpy as np
 import csv
 
@@ -25,7 +25,6 @@ class InputData:
         demand: list[float],
         demand_min: float,
         exp_allowance: float,
-        unmet_demand_cost: float,
 
         # optional for model 2 and 3
         storage_cost: float | None = None,  
@@ -42,7 +41,6 @@ class InputData:
         self.demand = demand
         self.demand_min = demand_min
         self.exp_allowance = exp_allowance
-        self.unmet_demand_cost = unmet_demand_cost
 
         # defining model 2 and 3 data inputs
         self.storage_cost = storage_cost
@@ -108,7 +106,6 @@ class DataProcessor():
         demand_min = 4169.41 # in MWh/day
         exp_allowance =  np.mean(price_MWh)*np.mean(demand_MW_plant) # in dkk/day
         ############## need to set unment demand cost ##################
-        unmet_demand_cost = 100 # in dkk/MWh
         depreciation = 0.95
 
         
@@ -117,14 +114,13 @@ class DataProcessor():
              price_MWh,
              demand_MW_plant,
              demand_min,
-             exp_allowance,
-             unmet_demand_cost,
+             exp_allowance
             )
         
         if self.model_type == "Model_2":
             storage_cost = 0.05*np.mean(price_MWh) # dkk/MWh stored per day
             ramp_rate = 7.2 * 10**4 # MWh per day
-            depreciation = depreciation # 2% depreciation per day
+            depreciation = depreciation # 5% depreciation per day
             max_storage_capacity = 18530.7 # MWh
 
             return InputData(
@@ -132,7 +128,6 @@ class DataProcessor():
              demand_MW_plant,
              demand_min,
              exp_allowance,
-             unmet_demand_cost,
              storage_cost,
              ramp_rate,
              depreciation,
@@ -145,39 +140,6 @@ class DataProcessor():
             depreciation = depreciation # 2% depreciation per day
             max_storage_capacity = 18530.7 # MWh
             
-
-            # def generate_scenarios(demand_MW_plant, demand_factor_scenarios, K):
-            #     """
-            #     Generate K demand scenarios where each day is independently high or low.
-                
-            #     Parameters:
-            #     - demand_MW_plant: array of base demand for each day (shape: 30,)
-            #     - demand_factor_scenarios: [low_factor, high_factor], e.g., [0.9, 1.1]
-            #     - K: number of scenarios to sample
-                
-            #     Returns:
-            #     - sampled_scenarios: array of shape (K, 30) with demand scenarios
-            #     """
-            #     np.random.seed(42)
-                
-            #     n_days = len(demand_MW_plant)
-            #     sampled_scenarios = np.zeros((K, n_days))
-                
-            #     # For each scenario, randomly choose high or low for each day
-            #     for k in range(K):
-            #         # For each day, randomly pick 0 (low=0.9) or 1 (high=1.1) with equal probability
-            #         random_choices = np.random.choice([0, 1], size=n_days, p=[0.5, 0.5])
-                    
-            #         # Apply the factors
-            #         for t in range(n_days):
-            #             factor = demand_factor_scenarios[random_choices[t]]
-            #             sampled_scenarios[k, t] = demand_MW_plant[t] * factor
-                
-            #     return sampled_scenarios
-
-
-            # demand_factor_scenarios = [0.9, 1.1]  # Low and high scenarios
-            # K = 1000  # Number of scenarios
 
             def generate_scenarios_demand_and_price(demand_MW_plant, price_base, demand_factor_scenarios, price_factor_scenarios, K):
                 """
@@ -242,7 +204,6 @@ class DataProcessor():
              demand_MW_plant,
              demand_min,
              exp_allowance,
-             unmet_demand_cost,
              storage_cost,
              ramp_rate,
              depreciation,

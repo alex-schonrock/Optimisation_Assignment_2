@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 from Runner.opt_model_2 import OptModel2
 from Runner.opt_model_1 import DataProcessor
-from Utils.utils import *
+from Utils.utils_and_plotting import *
 from Data_ops.data_loader_processor import *
 import csv
 
@@ -62,49 +62,4 @@ class RunnerModel2:
         budget = results.v_budget
         unmet_demand = results.obj
         return flows_results_df, unmet_demand, spending_results_df, budget, dual_results_df
-
-path = r"C:\Users\alex\OneDrive\Desktop\DTU\Optimistation\Optimisation_Assignment_2\Data"
-flow_results, unmet_demand, spending_results, budget, dual_results = RunnerModel2(path).run_model()
-
-print_model_2_metrics(flow_results, spending_results, budget, unmet_demand)
-print("flow results", flow_results)
-
-# plot_model_2_storage_strategy(
-#     flow_results=flow_results,
-#     spending_results=spending_results,
-#     save_path=Path(path) / "figures" / "Model_2_storage_strategy"
-
-# )
-plot_model2_procurement_plan(
-    flow_results=flow_results,
-    spending_results=spending_results,
-    unmet_demand=unmet_demand,
-    save_path=Path(path) / "figures" / "model2_procurement_plan"
-)
-
-# create_decision_matrix(
-#     flow_results=flow_results,
-#     spending_results=spending_results,
-#     save_path=Path(path) / "figures" / "Model_2_decision_matrix4x4_more_dates"
-# )
-# Create separate plots
-plot_model_2_energy_balance(
-    flow_results=flow_results,
-    spending_results=spending_results,  # Add this
-    unmet_demand=unmet_demand,
-    save_path=Path(path) / "figures" / "model2_energy_balance"
-)
-
-plot_model_2_economics(
-    spending_results=spending_results, unmet_demand=unmet_demand,
-    save_path=Path(path) / "figures" / "Model_2_economics"
-)
-
-# plot_model_2_storage_vs_budget_over_time(
-#     flow_results=flow_results,
-#     spending_results=spending_results,
-#     save_path=Path(path) / "figures" / "Model_2_storage_vs_budget_time"
-# )
-
-
 

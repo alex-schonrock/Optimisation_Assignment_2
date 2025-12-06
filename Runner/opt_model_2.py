@@ -103,6 +103,3 @@ class OptModel2:
         return self.results
         # build constraints and store handles in self.cons
 
-path = r"C:\Users\alex\OneDrive\Desktop\DTU\Optimistation\Optimisation_Assignment_2\Data"
-data_processor = DataProcessor(path, "Model_2")
-data_processor.get_coefficients()
