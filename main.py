@@ -448,8 +448,13 @@ def create_model3_beta_comparison(path, risk_0, risk_1, alpha, beta_0, beta_1):
     print("Model 3 beta comparison complete!")
 
 
+import time
+
 def main():
     """Main execution function - runs all analyses."""
+    # Start timing
+    start_time = time.time()
+    
     # Set data path
     path = r"C:\Users\alex\OneDrive\Desktop\DTU\Optimistation\Optimisation_Assignment_2\Data"
     
@@ -467,22 +472,36 @@ def main():
     # ========================================================================
     
     # Run Model 1
+    model1_start = time.time()
     primal_m1, unmet_m1, spending_m1, dual_m1 = run_model_1_analysis(path)
+    model1_time = time.time() - model1_start
+    print(f"\n⏱️  Model 1 completed in {model1_time:.2f} seconds")
     
     # Run Model 2
+    model2_start = time.time()
     flow_m2, unmet_m2, spending_m2, budget_m2, dual_m2 = run_model_2_analysis(path)
+    model2_time = time.time() - model2_start
+    print(f"⏱️  Model 2 completed in {model2_time:.2f} seconds")
     
     # Run Model 3 with beta_0 (risk-neutral)
+    model3_0_start = time.time()
     flow_m3_0, spending_m3_0, risk_m3_0, results_m3_0 = run_model_3_single(
         path, alpha=alpha_val, beta=beta_val_0)
+    model3_0_time = time.time() - model3_0_start
+    print(f"⏱️  Model 3 (β={beta_val_0:.2f}) completed in {model3_0_time:.2f} seconds")
     
     # Run Model 3 with beta_1 (risk-averse)
+    model3_1_start = time.time()
     flow_m3_1, spending_m3_1, risk_m3_1, results_m3_1 = run_model_3_single(
         path, alpha=alpha_val, beta=beta_val_1)
+    model3_1_time = time.time() - model3_1_start
+    print(f"⏱️  Model 3 (β={beta_val_1:.2f}) completed in {model3_1_time:.2f} seconds")
     
     # ========================================================================
     # STEP 2: Create all comparisons using existing results
     # ========================================================================
+    
+    comparison_start = time.time()
     
     # Model 2 vs Model 3 (β=0.3 - risk-averse)
     create_model2_vs_model3_comparison(
@@ -505,10 +524,24 @@ def main():
         alpha=alpha_val, beta_0=beta_val_0, beta_1=beta_val_1
     )
     
+    comparison_time = time.time() - comparison_start
+    print(f"\n⏱️  All comparisons and visualizations completed in {comparison_time:.2f} seconds")
+    
+    # Calculate and print total time
+    total_time = time.time() - start_time
+    minutes = int(total_time // 60)
+    seconds = total_time % 60
+    
     print("\n" + "="*80)
     print("ALL ANALYSES COMPLETE!")
     print("="*80)
-
+    print(f"\n⏱️  TOTAL EXECUTION TIME: {minutes} min {seconds:.2f} sec ({total_time:.2f} seconds)")
+    print(f"\n   Model 1:              {model1_time:.2f}s")
+    print(f"   Model 2:              {model2_time:.2f}s")
+    print(f"   Model 3 (β={beta_val_0:.2f}):     {model3_0_time:.2f}s")
+    print(f"   Model 3 (β={beta_val_1:.2f}):     {model3_1_time:.2f}s")
+    print(f"   Comparisons/Plots:    {comparison_time:.2f}s")
+    print("="*80 + "\n")
 
 if __name__ == "__main__":
     main()
